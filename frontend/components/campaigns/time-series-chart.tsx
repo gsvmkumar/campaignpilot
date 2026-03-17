@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { budgetHistoryData } from "@/lib/mock-data"
+import { chartAxisLine, chartAxisTick, chartGrid, chartLegendStyle, chartTooltipStyle } from "@/lib/chart-theme"
 import {
   Line,
   LineChart,
@@ -32,28 +33,23 @@ export function TimeSeriesChart() {
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={budgetHistoryData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid {...chartGrid} />
               <XAxis
                 dataKey="day"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={chartAxisTick}
+                axisLine={chartAxisLine}
               />
               <YAxis
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={chartAxisTick}
+                axisLine={chartAxisLine}
                 domain={[0, 30]}
                 tickFormatter={(v) => `${v}%`}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  color: "hsl(var(--foreground))",
-                }}
+                contentStyle={chartTooltipStyle}
                 formatter={(value: number) => [`${value}%`, ""]}
               />
-              <Legend wrapperStyle={{ paddingTop: "20px" }} />
+              <Legend wrapperStyle={chartLegendStyle} />
               {Object.entries(colors).map(([key, color]) => (
                 <Line
                   key={key}

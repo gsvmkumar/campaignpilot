@@ -1,10 +1,10 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { variants } from "@/lib/mock-data"
 import { useEffect, useState } from "react"
 
-// Simplified Sankey visualization using CSS
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { variants } from "@/lib/mock-data"
+
 export function BudgetSankey() {
   const [animated, setAnimated] = useState(false)
 
@@ -14,25 +14,23 @@ export function BudgetSankey() {
   }, [])
 
   const totalBudget = 200000
-  const totalConversions = variants.reduce((sum, v) => sum + v.conversions, 0)
+  const totalConversions = variants.reduce((sum, variant) => sum + variant.conversions, 0)
 
   return (
-    <Card className="bg-card border-border">
+    <Card className="border-border bg-card">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-medium">Budget Flow</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="relative h-[300px]">
-          {/* Total Budget Node */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-28">
-            <div className="bg-primary/20 border border-primary/30 rounded-lg p-3 text-center">
+          <div className="absolute left-0 top-1/2 w-28 -translate-y-1/2">
+            <div className="rounded-lg border border-primary/30 bg-primary/20 p-3 text-center">
               <p className="text-xs text-muted-foreground">Total Budget</p>
-              <p className="text-lg font-bold">₹{(totalBudget / 1000).toFixed(0)}K</p>
+              <p className="text-lg font-bold">Rs {(totalBudget / 1000).toFixed(0)}K</p>
             </div>
           </div>
 
-          {/* Variant Nodes */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-0 h-full flex flex-col justify-around py-2">
+          <div className="absolute left-1/2 top-0 flex h-full -translate-x-1/2 flex-col justify-around py-2">
             {variants.map((variant, index) => {
               const getColorClass = () => {
                 switch (variant.status) {
@@ -50,7 +48,7 @@ export function BudgetSankey() {
               return (
                 <div
                   key={variant.id}
-                  className={`${getColorClass()} border rounded-lg px-3 py-1.5 text-center transition-all duration-500`}
+                  className={`${getColorClass()} rounded-lg border px-3 py-1.5 text-center transition-all duration-500`}
                   style={{
                     opacity: animated ? 1 : 0,
                     transform: animated ? "translateX(0)" : "translateX(-20px)",
@@ -58,34 +56,31 @@ export function BudgetSankey() {
                   }}
                 >
                   <p className="text-xs font-medium">{variant.name}</p>
-                  <p className="text-xs text-muted-foreground">₹{(variant.spend / 1000).toFixed(0)}K</p>
+                  <p className="text-xs text-muted-foreground">Rs {(variant.spend / 1000).toFixed(0)}K</p>
                 </div>
               )
             })}
           </div>
 
-          {/* Conversions Node */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-28">
-            <div className="bg-success/20 border border-success/30 rounded-lg p-3 text-center">
+          <div className="absolute right-0 top-1/2 w-28 -translate-y-1/2">
+            <div className="rounded-lg border border-success/30 bg-success/20 p-3 text-center">
               <p className="text-xs text-muted-foreground">Conversions</p>
               <p className="text-lg font-bold">{totalConversions.toLocaleString()}</p>
             </div>
           </div>
 
-          {/* Flow Lines (simplified) */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+          <svg className="pointer-events-none absolute inset-0 h-full w-full">
             {variants.map((variant, index) => {
               const yOffset = (index / (variants.length - 1)) * 240 + 30
               const strokeColor =
                 variant.status === "healthy"
                   ? "#22c55e"
                   : variant.status === "watch"
-                  ? "#f59e0b"
-                  : "#ef4444"
+                    ? "#f59e0b"
+                    : "#ef4444"
 
               return (
                 <g key={variant.id}>
-                  {/* Left to middle */}
                   <path
                     d={`M 112 150 Q 180 150 220 ${yOffset}`}
                     fill="none"
@@ -95,7 +90,6 @@ export function BudgetSankey() {
                     className="transition-opacity duration-1000"
                     style={{ transitionDelay: `${index * 100}ms` }}
                   />
-                  {/* Middle to right */}
                   <path
                     d={`M 280 ${yOffset} Q 340 ${yOffset} 380 150`}
                     fill="none"

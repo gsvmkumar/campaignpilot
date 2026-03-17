@@ -1,25 +1,27 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { variants } from "@/lib/mock-data"
 import {
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
   Scatter,
   ScatterChart,
-  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  CartesianGrid,
   ZAxis,
-  Cell,
 } from "recharts"
 
-const data = variants.map((v) => ({
-  name: v.name,
-  spend: v.spend / 1000,
-  conversions: v.conversions,
-  ctr: v.ctr,
-  status: v.status,
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { chartAxisLine, chartAxisTick, chartColors, chartGrid, chartTooltipStyle } from "@/lib/chart-theme"
+import { variants } from "@/lib/mock-data"
+
+const data = variants.map((variant) => ({
+  name: variant.name,
+  spend: variant.spend / 1000,
+  conversions: variant.conversions,
+  ctr: variant.ctr,
+  status: variant.status,
 }))
 
 const colors: Record<string, string> = {
@@ -30,7 +32,7 @@ const colors: Record<string, string> = {
 
 export function EfficiencyChart() {
   return (
-    <Card className="bg-card border-border">
+    <Card className="border-border bg-card">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Budget Efficiency</CardTitle>
       </CardHeader>
@@ -38,43 +40,38 @@ export function EfficiencyChart() {
         <div className="h-[350px]">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid {...chartGrid} />
               <XAxis
                 type="number"
                 dataKey="spend"
                 name="Spend"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={chartAxisTick}
+                axisLine={chartAxisLine}
                 label={{
-                  value: "Spend (₹K)",
+                  value: "Spend (Rs K)",
                   position: "insideBottom",
                   offset: -10,
-                  fill: "hsl(var(--muted-foreground))",
+                  fill: chartColors.mutedForeground,
                 }}
               />
               <YAxis
                 type="number"
                 dataKey="conversions"
                 name="Conversions"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={chartAxisTick}
+                axisLine={chartAxisLine}
                 label={{
                   value: "Conversions",
                   angle: -90,
                   position: "insideLeft",
-                  fill: "hsl(var(--muted-foreground))",
+                  fill: chartColors.mutedForeground,
                 }}
               />
               <ZAxis type="number" dataKey="ctr" range={[100, 400]} name="CTR" />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  color: "hsl(var(--foreground))",
-                }}
+                contentStyle={chartTooltipStyle}
                 formatter={(value: number, name: string) => {
-                  if (name === "Spend") return [`₹${value}K`, name]
+                  if (name === "Spend") return [`Rs ${value}K`, name]
                   if (name === "CTR") return [`${value}%`, name]
                   return [value, name]
                 }}
@@ -82,6 +79,7 @@ export function EfficiencyChart() {
                   if (payload && payload[0]) {
                     return payload[0].payload.name
                   }
+
                   return ""
                 }}
               />
@@ -93,17 +91,17 @@ export function EfficiencyChart() {
             </ScatterChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex items-center justify-center gap-6 mt-4">
+        <div className="mt-4 flex items-center justify-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-success" />
+            <div className="h-3 w-3 rounded-full bg-success" />
             <span className="text-sm text-muted-foreground">Healthy</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-warning" />
+            <div className="h-3 w-3 rounded-full bg-warning" />
             <span className="text-sm text-muted-foreground">Watch</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-danger" />
+            <div className="h-3 w-3 rounded-full bg-danger" />
             <span className="text-sm text-muted-foreground">Fatigued</span>
           </div>
         </div>

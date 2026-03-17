@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { chartColors } from "@/lib/chart-theme"
 import { variants } from "@/lib/mock-data"
 import { CheckCircle, AlertTriangle, XCircle } from "lucide-react"
 
@@ -75,7 +76,7 @@ export function HealthStatusGrid() {
                   <path
                     d="M 10 55 A 50 50 0 0 1 110 55"
                     fill="none"
-                    stroke="hsl(var(--secondary))"
+                    stroke={chartColors.secondary}
                     strokeWidth="8"
                     strokeLinecap="round"
                   />
@@ -100,11 +101,11 @@ export function HealthStatusGrid() {
                     y1="55"
                     x2={60 + 35 * Math.cos((Math.PI * (180 - variant.fatigueScore * 1.8)) / 180)}
                     y2={55 - 35 * Math.sin((Math.PI * (180 - variant.fatigueScore * 1.8)) / 180)}
-                    stroke="hsl(var(--foreground))"
+                    stroke={chartColors.foreground}
                     strokeWidth="2"
                     strokeLinecap="round"
                   />
-                  <circle cx="60" cy="55" r="4" fill="hsl(var(--foreground))" />
+                  <circle cx="60" cy="55" r="4" fill={chartColors.foreground} />
                 </svg>
               </div>
 

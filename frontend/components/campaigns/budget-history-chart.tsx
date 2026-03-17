@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { budgetHistoryData } from "@/lib/mock-data"
+import { chartAxisLine, chartAxisTick, chartLegendStyle, chartTooltipStyle } from "@/lib/chart-theme"
 import {
   Area,
   AreaChart,
@@ -33,24 +34,16 @@ export function BudgetHistoryChart() {
             <AreaChart data={budgetHistoryData} stackOffset="expand">
               <XAxis
                 dataKey="day"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={chartAxisTick}
+                axisLine={chartAxisLine}
               />
               <YAxis
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={chartAxisTick}
+                axisLine={chartAxisLine}
                 tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
               />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  color: "hsl(var(--foreground))",
-                }}
-                formatter={(value: number) => [`${value}%`, ""]}
-              />
-              <Legend wrapperStyle={{ paddingTop: "20px" }} />
+              <Tooltip contentStyle={chartTooltipStyle} formatter={(value: number) => [`${value}%`, ""]} />
+              <Legend wrapperStyle={chartLegendStyle} />
               {Object.entries(colors).map(([key, color]) => (
                 <Area
                   key={key}

@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ctrDecayData } from "@/lib/mock-data"
+import { chartAxisLine, chartAxisTick, chartGrid, chartLegendStyle, chartTooltipStyle } from "@/lib/chart-theme"
 import {
   Line,
   LineChart,
@@ -33,29 +34,21 @@ export function CTRDecayChart() {
         <div className="h-[350px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={ctrDecayData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <CartesianGrid {...chartGrid} />
               <XAxis
                 dataKey="day"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={chartAxisTick}
+                axisLine={chartAxisLine}
                 tickFormatter={(v) => `Day ${v}`}
               />
               <YAxis
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={chartAxisTick}
+                axisLine={chartAxisLine}
                 domain={[0, 5]}
                 tickFormatter={(v) => `${v}%`}
               />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  color: "hsl(var(--foreground))",
-                }}
-                formatter={(value: number) => [`${value}%`, ""]}
-              />
-              <Legend wrapperStyle={{ paddingTop: "20px" }} />
+              <Tooltip contentStyle={chartTooltipStyle} formatter={(value: number) => [`${value}%`, ""]} />
+              <Legend wrapperStyle={chartLegendStyle} />
               <ReferenceLine
                 y={2.5}
                 stroke="#ef4444"

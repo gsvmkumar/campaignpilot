@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { journeyLengthData } from "@/lib/mock-data"
+import { chartAxisLine, chartAxisTick, chartTooltipStyle } from "@/lib/chart-theme"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Cell } from "recharts"
 
 const colors = ["#22c55e", "#3b82f6", "#f59e0b", "#8b5cf6"]
@@ -18,20 +19,15 @@ export function JourneyDistribution() {
             <BarChart data={journeyLengthData}>
               <XAxis
                 dataKey="touches"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={chartAxisTick}
+                axisLine={chartAxisLine}
               />
               <YAxis
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
+                tick={chartAxisTick}
+                axisLine={chartAxisLine}
               />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  color: "hsl(var(--foreground))",
-                }}
+                contentStyle={chartTooltipStyle}
                 formatter={(value: number, name: string, props: { payload: { percentage: number } }) => [
                   `${value.toLocaleString()} (${props.payload.percentage}%)`,
                   "Customers",
