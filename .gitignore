@@ -1,0 +1,53 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Secrets
+serviceAccountKey.json
+backend/serviceAccountKey.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+backend/.venv/
+
+# Next.js / Node
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Coverage / build artifacts
+coverage/
+dist/
+build/
+
+
+.venv/
+backend/.venv/
+
+backend/serviceAccountKey.json
+*.json
+.env
