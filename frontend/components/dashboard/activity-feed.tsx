@@ -1,9 +1,10 @@
 "use client"
 
+import { AlertCircle, AlertTriangle, ArrowRightLeft, Settings, TrendingUp } from "lucide-react"
+
+import { ActivityItem } from "@/lib/campaignpilot"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { activityEvents } from "@/lib/mock-data"
-import { ArrowRightLeft, AlertCircle, TrendingUp, Settings, AlertTriangle } from "lucide-react"
 
 function getEventIcon(type: string) {
   switch (type) {
@@ -39,15 +40,19 @@ function getEventColor(type: string) {
   }
 }
 
-export function ActivityFeed() {
+interface ActivityFeedProps {
+  activityEvents: ActivityItem[]
+}
+
+export function ActivityFeed({ activityEvents }: ActivityFeedProps) {
   return (
-    <Card className="bg-card border-border h-full">
+    <Card className="h-full border-border bg-card">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-medium flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-lg font-medium">
           Live Activity
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
           </span>
         </CardTitle>
       </CardHeader>
@@ -60,17 +65,15 @@ export function ActivityFeed() {
               return (
                 <div
                   key={event.id}
-                  className="flex items-start gap-3 animate-in slide-in-from-right-2"
+                  className="animate-in slide-in-from-right-2 flex items-start gap-3"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className={`p-2 rounded-lg ${colorClass}`}>
+                  <div className={`rounded-lg p-2 ${colorClass}`}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm">{event.event}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {event.time}
-                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{event.time}</p>
                   </div>
                 </div>
               )

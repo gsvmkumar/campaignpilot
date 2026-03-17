@@ -2,18 +2,23 @@
 
 import { useEffect, useState } from "react"
 
+import { DashboardVariant } from "@/lib/campaignpilot"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { variants } from "@/lib/mock-data"
 
-export function BudgetSankey() {
+interface BudgetSankeyProps {
+  variants: DashboardVariant[]
+  totalBudget: number
+}
+
+export function BudgetSankey({ variants, totalBudget }: BudgetSankeyProps) {
   const [animated, setAnimated] = useState(false)
 
   useEffect(() => {
+    setAnimated(false)
     const timer = setTimeout(() => setAnimated(true), 200)
     return () => clearTimeout(timer)
-  }, [])
+  }, [variants])
 
-  const totalBudget = 200000
   const totalConversions = variants.reduce((sum, variant) => sum + variant.conversions, 0)
 
   return (
@@ -32,23 +37,17 @@ export function BudgetSankey() {
 
           <div className="absolute left-1/2 top-0 flex h-full -translate-x-1/2 flex-col justify-around py-2">
             {variants.map((variant, index) => {
-              const getColorClass = () => {
-                switch (variant.status) {
-                  case "healthy":
-                    return "bg-success/20 border-success/30"
-                  case "watch":
-                    return "bg-warning/20 border-warning/30"
-                  case "fatigued":
-                    return "bg-danger/20 border-danger/30"
-                  default:
-                    return "bg-secondary border-border"
-                }
-              }
+              const colorClass =
+                variant.status === "healthy"
+                  ? "bg-success/20 border-success/30"
+                  : variant.status === "watch"
+                    ? "bg-warning/20 border-warning/30"
+                    : "bg-danger/20 border-danger/30"
 
               return (
                 <div
                   key={variant.id}
-                  className={`${getColorClass()} rounded-lg border px-3 py-1.5 text-center transition-all duration-500`}
+                  className={`${colorClass} rounded-lg border px-3 py-1.5 text-center transition-all duration-500`}
                   style={{
                     opacity: animated ? 1 : 0,
                     transform: animated ? "translateX(0)" : "translateX(-20px)",
@@ -71,7 +70,7 @@ export function BudgetSankey() {
 
           <svg className="pointer-events-none absolute inset-0 h-full w-full">
             {variants.map((variant, index) => {
-              const yOffset = (index / (variants.length - 1)) * 240 + 30
+              const yOffset = (index / Math.max(variants.length - 1, 1)) * 240 + 30
               const strokeColor =
                 variant.status === "healthy"
                   ? "#22c55e"

@@ -1,8 +1,9 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { variants } from "@/lib/mock-data"
 import { useEffect, useState } from "react"
+
+import { DashboardVariant } from "@/lib/campaignpilot"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 function getStatusColor(status: string) {
   switch (status) {
@@ -30,15 +31,20 @@ function getStatusTextColor(status: string) {
   }
 }
 
-export function BudgetAllocationChart() {
+interface BudgetAllocationChartProps {
+  variants: DashboardVariant[]
+}
+
+export function BudgetAllocationChart({ variants }: BudgetAllocationChartProps) {
   const [animatedWidths, setAnimatedWidths] = useState<number[]>(variants.map(() => 0))
 
   useEffect(() => {
+    setAnimatedWidths(variants.map(() => 0))
     const timer = setTimeout(() => {
-      setAnimatedWidths(variants.map((v) => v.budget))
+      setAnimatedWidths(variants.map((variant) => variant.budget))
     }, 100)
     return () => clearTimeout(timer)
-  }, [])
+  }, [variants])
 
   const sortedVariants = [...variants].sort((a, b) => b.budget - a.budget)
 
@@ -48,29 +54,27 @@ export function BudgetAllocationChart() {
         <CardTitle className="text-lg font-medium">Budget Allocation</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {sortedVariants.map((variant, index) => (
+        {sortedVariants.map((variant) => (
           <div key={variant.id} className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <span className="font-medium">{variant.name}</span>
-                <span className="text-muted-foreground text-xs">
-                  {variant.platform}
-                </span>
+                <span className="text-xs text-muted-foreground">{variant.platform}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(variant.status)}/10 ${getStatusTextColor(variant.status)}`}>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs ${getStatusColor(variant.status)}/10 ${getStatusTextColor(variant.status)}`}
+                >
                   {variant.status}
                 </span>
-                <span className="font-mono font-medium w-12 text-right">
-                  {variant.budget}%
-                </span>
+                <span className="w-12 text-right font-mono font-medium">{variant.budget}%</span>
               </div>
             </div>
-            <div className="h-3 bg-secondary rounded-full overflow-hidden">
+            <div className="h-3 overflow-hidden rounded-full bg-secondary">
               <div
                 className={`h-full rounded-full transition-all duration-1000 ease-out ${getStatusColor(variant.status)}`}
                 style={{
-                  width: `${(animatedWidths[variants.findIndex((v) => v.id === variant.id)] / 30) * 100}%`,
+                  width: `${animatedWidths[variants.findIndex((item) => item.id === variant.id)]}%`,
                 }}
               />
             </div>

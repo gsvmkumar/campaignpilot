@@ -35,11 +35,3 @@ export const chartTooltipStyle = {
   borderRadius: "8px",
   color: chartColors.foreground,
 }
-
-export const chartTooltipLabelStyle = {
-  color: chartColors.foreground,
-}
-
-export const chartTooltipItemStyle = {
-  color: chartColors.foreground,
-}

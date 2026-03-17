@@ -1,25 +1,45 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
 import { useEffect, useState } from "react"
 import { Timer } from "lucide-react"
 
-export function CountdownTimer() {
-  const [timeLeft, setTimeLeft] = useState(872) // 14:32 in seconds
+import { secondsToNextRebalance } from "@/lib/campaignpilot"
+import { Card, CardContent } from "@/components/ui/card"
+
+interface CountdownTimerProps {
+  lastRebalanced: string
+  nextRebalanceInMinutes: number
+}
+
+export function CountdownTimer({
+  lastRebalanced,
+  nextRebalanceInMinutes,
+}: CountdownTimerProps) {
+  const [timeLeft, setTimeLeft] = useState(() =>
+    secondsToNextRebalance(lastRebalanced, nextRebalanceInMinutes),
+  )
+
+  useEffect(() => {
+    setTimeLeft(secondsToNextRebalance(lastRebalanced, nextRebalanceInMinutes))
+  }, [lastRebalanced, nextRebalanceInMinutes])
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 0) return 900 // Reset to 15 minutes
-        return prev - 1
+      setTimeLeft((previous) => {
+        if (previous <= 0) {
+          return nextRebalanceInMinutes * 60
+        }
+        return previous - 1
       })
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [])
+  }, [nextRebalanceInMinutes])
 
   const minutes = Math.floor(timeLeft / 60)
   const seconds = timeLeft % 60
+  const totalSeconds = Math.max(nextRebalanceInMinutes * 60, 1)
+  const progress = ((totalSeconds - timeLeft) / totalSeconds) * 100
 
   return (
     <Card className="bg-card border-border">
@@ -36,10 +56,10 @@ export function CountdownTimer() {
             </div>
           </div>
         </div>
-        <div className="mt-4 h-2 bg-secondary rounded-full overflow-hidden">
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
           <div
-            className="h-full bg-primary transition-all duration-1000 ease-linear rounded-full"
-            style={{ width: `${((900 - timeLeft) / 900) * 100}%` }}
+            className="h-full rounded-full bg-primary transition-all duration-1000 ease-linear"
+            style={{ width: `${progress}%` }}
           />
         </div>
       </CardContent>
