@@ -13,7 +13,15 @@ import {
 } from "recharts"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { chartAxisLine, chartAxisTick, chartColors, chartGrid, chartTooltipStyle } from "@/lib/chart-theme"
+import {
+  chartAxisLine,
+  chartAxisTick,
+  chartColors,
+  chartGrid,
+  chartTooltipItemStyle,
+  chartTooltipLabelStyle,
+  chartTooltipStyle,
+} from "@/lib/chart-theme"
 import { variants } from "@/lib/mock-data"
 
 const data = variants.map((variant) => ({
@@ -70,6 +78,8 @@ export function EfficiencyChart() {
               <ZAxis type="number" dataKey="ctr" range={[100, 400]} name="CTR" />
               <Tooltip
                 contentStyle={chartTooltipStyle}
+                itemStyle={chartTooltipItemStyle}
+                labelStyle={chartTooltipLabelStyle}
                 formatter={(value: number, name: string) => {
                   if (name === "Spend") return [`Rs ${value}K`, name]
                   if (name === "CTR") return [`${value}%`, name]
