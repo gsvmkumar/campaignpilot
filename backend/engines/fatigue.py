@@ -9,6 +9,7 @@ import numpy as np
 from sklearn.linear_model import LinearRegression
 
 from models import FatigueStatus, VariantMetrics
+from replay import load_avazu_decay, load_benchmark_priors
 
 logger = logging.getLogger(__name__)
 
@@ -26,20 +27,45 @@ _VARIANT_META: Final[dict[str, tuple[str, str]]] = {
 }
 
 
+def _variant_meta() -> dict[str, tuple[str, str]]:
+    priors = load_benchmark_priors()
+    if not priors:
+        return dict(_VARIANT_META)
+    return {
+        variant_id: (
+            str(payload.get("name", variant_id)),
+            str(payload.get("channel", "Unknown")),
+        )
+        for variant_id, payload in priors.items()
+    }
+
+
+def _thresholds() -> tuple[float, float]:
+    payload = load_avazu_decay()
+    if not payload:
+        return WATCH_THRESHOLD, FATIGUED_THRESHOLD
+
+    watch_threshold = float(payload.get("watch_threshold", WATCH_THRESHOLD))
+    fatigued_threshold = float(payload.get("fatigued_threshold", FATIGUED_THRESHOLD))
+    return watch_threshold, fatigued_threshold
+
+
 def _classify_slope(slope: float) -> tuple[str, str]:
     """Map a regression slope to fatigue status and alert messaging."""
 
-    if slope < FATIGUED_THRESHOLD:
-        return "FATIGUED", "CTR declining fast — refresh creative immediately"
-    if slope < WATCH_THRESHOLD:
-        return "WATCH", "CTR showing early decline — monitor closely"
+    watch_threshold, fatigued_threshold = _thresholds()
+    if slope < fatigued_threshold:
+        return "FATIGUED", "CTR declining fast - refresh creative immediately"
+    if slope < watch_threshold:
+        return "WATCH", "CTR showing early decline - monitor closely"
     return "HEALTHY", "Performing well"
 
 
 def detect(variant_id: str, ctr_history: list[float]) -> FatigueStatus:
     """Detect fatigue for a single variant from its recent CTR history."""
 
-    name, channel = _VARIANT_META.get(variant_id, (variant_id, "Unknown"))
+    variant_meta = _variant_meta()
+    name, channel = variant_meta.get(variant_id, (variant_id, "Unknown"))
     recent_history = [round(value, 4) for value in ctr_history[-WINDOW_SIZE:]]
 
     if len(recent_history) < MIN_HISTORY_POINTS:
@@ -75,7 +101,8 @@ def detect(variant_id: str, ctr_history: list[float]) -> FatigueStatus:
 def detect_all(history: list[list[VariantMetrics]]) -> list[FatigueStatus]:
     """Detect fatigue for every configured variant using simulator history."""
 
-    ctr_by_variant: dict[str, list[float]] = {variant_id: [] for variant_id in _VARIANT_META}
+    variant_meta = _variant_meta()
+    ctr_by_variant: dict[str, list[float]] = {variant_id: [] for variant_id in variant_meta}
     for cycle in history[-WINDOW_SIZE:]:
         for metric in cycle:
             ctr_by_variant.setdefault(metric.variant_id, []).append(metric.ctr)

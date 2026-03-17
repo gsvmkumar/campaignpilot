@@ -1,14 +1,18 @@
 # OS / editor
 .DS_Store
 Thumbs.db
+Desktop.ini
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Environment files
 .env
@@ -16,38 +20,87 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+frontend/.env.local
+backend/.env
 
 # Secrets
 serviceAccountKey.json
 backend/serviceAccountKey.json
+*.pem
+*.key
 
 # Python
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+.python-version
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 .venv/
 venv/
+env/
+ENV/
 backend/.venv/
 
-# Next.js / Node
+# Python packaging
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Node / Next.js
 node_modules/
 frontend/node_modules/
+.next/
 frontend/.next/
+out/
 frontend/out/
+.vercel/
+frontend/.vercel/
 
-# Coverage / build artifacts
+# Build / coverage artifacts
 coverage/
 dist/
 build/
+tmp/
+temp/
+
+# Generated backend artifacts
+backend/data/processed/
+backend/die_output.json
+
+# Raw large datasets / local data dumps
+backend/raw/*.tsv
+backend/raw/*.parquet
+backend/raw/*.feather
+backend/raw/*.pkl
+backend/raw/*.pickle
+backend/raw/*.zip
+backend/raw/*.7z
+backend/raw/*.gz
+backend/raw/*.bz2
+
+# Tracked bytecode / local caches that should never ship
+*.pyc
+*.pyo
+backend/__pycache__/
+backend/**/__pycache__/
+frontend/**/__pycache__/
+
+# Local databases / runtime files
+*.sqlite
+*.sqlite3
+*.db
+
+# Keep examples committed
+!.env.example
+!backend/.env.example
+!frontend/.env.example
 
 
-.venv/
-backend/.venv/
-
-backend/serviceAccountKey.json
-*.json
-.env
+backend/raw/*.csv
+backend/raw/*.tsv

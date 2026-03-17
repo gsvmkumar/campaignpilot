@@ -7,6 +7,7 @@ import { BudgetAllocationChart } from "@/components/dashboard/budget-allocation-
 import { BudgetSankey } from "@/components/dashboard/budget-sankey"
 import { CountdownTimer } from "@/components/dashboard/countdown-timer"
 import { CTRSparklines } from "@/components/dashboard/ctr-sparklines"
+import { DomainStrategyCard } from "@/components/dashboard/domain-strategy-card"
 import { MetricCards } from "@/components/dashboard/metric-cards"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import {
@@ -16,14 +17,29 @@ import {
   buildActivityFeed,
   buildCtrTrendData,
   buildMetricCards,
+  fetchDomains,
   fetchAnalytics,
   fetchDashboard,
 } from "@/lib/campaignpilot"
+import { getDefaultDomain, loadSelectedDomain, saveSelectedDomain } from "@/lib/domain-selection"
 
 export function DashboardLive() {
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null)
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null)
+  const [domain, setDomain] = useState(getDefaultDomain)
+  const [domainInput, setDomainInput] = useState(getDefaultDomain)
+  const [suggestedDomains, setSuggestedDomains] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const storedDomain = loadSelectedDomain()
+    setDomain(storedDomain)
+    setDomainInput(storedDomain)
+  }, [])
+
+  useEffect(() => {
+    saveSelectedDomain(domain)
+  }, [domain])
 
   useEffect(() => {
     let active = true
@@ -31,7 +47,7 @@ export function DashboardLive() {
     async function load() {
       try {
         const [dashboardData, analyticsData] = await Promise.all([
-          fetchDashboard(),
+          fetchDashboard(domain),
           fetchAnalytics(),
         ])
 
@@ -52,6 +68,22 @@ export function DashboardLive() {
       }
     }
 
+    async function loadSuggestedDomains() {
+      try {
+        const payload = await fetchDomains()
+        if (!active) {
+          return
+        }
+        setSuggestedDomains(payload.domains)
+      } catch {
+        if (!active) {
+          return
+        }
+        setSuggestedDomains(["Furniture", "Business Services", "Finance & Insurance", "Beauty & Personal Care"])
+      }
+    }
+
+    loadSuggestedDomains()
     load()
     const interval = setInterval(load, 30_000)
 
@@ -59,7 +91,7 @@ export function DashboardLive() {
       active = false
       clearInterval(interval)
     }
-  }, [])
+  }, [domain])
 
   return (
     <DashboardLayout>
@@ -92,6 +124,25 @@ export function DashboardLive() {
 
             return (
               <>
+                <DomainStrategyCard
+                  domain={domain}
+                  domainInput={domainInput}
+                  suggestedDomains={suggestedDomains}
+                  strategy={dashboard.domain_strategy}
+                  onDomainInputChange={setDomainInput}
+                  onApplyDomain={() => {
+                    const nextDomain = domainInput.trim()
+                    if (nextDomain) {
+                      setDomain(nextDomain)
+                      saveSelectedDomain(nextDomain)
+                    }
+                  }}
+                  onSelectSuggestedDomain={(value) => {
+                    setDomainInput(value)
+                    setDomain(value)
+                    saveSelectedDomain(value)
+                  }}
+                />
                 <MetricCards metrics={metricCards} />
                 <CountdownTimer
                   lastRebalanced={dashboard.last_rebalanced}

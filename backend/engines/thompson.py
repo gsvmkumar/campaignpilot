@@ -9,6 +9,7 @@ from typing import Final
 from scipy.stats import beta as beta_distribution
 
 from models import BudgetAllocation, VariantMetrics
+from replay import load_benchmark_priors
 
 logger = logging.getLogger(__name__)
 
@@ -31,12 +32,34 @@ _state: dict[str, dict[str, float]] = {
     "variant_e": {"alpha": 29.0, "beta": 971.0},
     "variant_f": {"alpha": 11.0, "beta": 989.0},
 }
+_variant_names: dict[str, str] = dict(_VARIANT_NAMES)
 
 
 def _iso_timestamp() -> str:
     """Return the current UTC time as an ISO formatted string."""
 
     return datetime.now(timezone.utc).isoformat()
+
+
+def initialize_from_priors() -> None:
+    """Seed Thompson state from processed dataset-backed priors when available."""
+
+    priors = load_benchmark_priors()
+    if not priors:
+        logger.info("No processed benchmark priors found; using default Thompson state")
+        return
+
+    global _state, _variant_names
+    _state = {}
+    _variant_names = {}
+    for variant_id, payload in priors.items():
+        _state[variant_id] = {
+            "alpha": float(payload.get("alpha", 1.0)),
+            "beta": float(payload.get("beta", 1.0)),
+        }
+        _variant_names[variant_id] = str(payload.get("name", variant_id))
+
+    logger.info("Initialized Thompson state from %s dataset-backed priors", len(_state))
 
 
 def update(metrics: list[VariantMetrics]) -> None:
@@ -94,13 +117,13 @@ def allocate() -> list[BudgetAllocation]:
     allocations = [
         BudgetAllocation(
             variant_id=variant_id,
-            name=_VARIANT_NAMES[variant_id],
+            name=_variant_names[variant_id],
             budget_percentage=round(normalized_allocations[variant_id], 4),
             alpha=round(_state[variant_id]["alpha"], 4),
             beta=round(_state[variant_id]["beta"], 4),
             updated_at=timestamp,
         )
-        for variant_id in _VARIANT_NAMES
+        for variant_id in _variant_names
     ]
     allocations.sort(key=lambda item: item.budget_percentage, reverse=True)
 

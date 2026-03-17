@@ -81,8 +81,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --font-sans: 'Segoe UI', 'Aptos', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);

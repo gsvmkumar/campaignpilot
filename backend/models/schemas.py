@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pydantic import BaseModel, Field
+from typing import Optional
 
 
 class VariantMetrics(BaseModel):
@@ -11,6 +12,10 @@ class VariantMetrics(BaseModel):
     variant_id: str = Field(description='Variant identifier, e.g. "variant_a".')
     name: str = Field(description='Display name, e.g. "Instagram Video".')
     channel: str = Field(description='Marketing channel, e.g. "Instagram".')
+    benchmark_category: str | None = Field(
+        default=None,
+        description='Source benchmark category, e.g. "Animals & Pets".',
+    )
     impressions: int = Field(ge=0)
     clicks: int = Field(ge=0)
     ctr: float = Field(ge=0.0, le=100.0, description="Clicks / impressions as a percentage.")
@@ -61,6 +66,25 @@ class FatigueStatus(BaseModel):
     alert_message: str
 
 
+class PlatformRecommendation(BaseModel):
+    """Recommended platform mix for a user-provided business domain."""
+
+    platform: str
+    recommended_budget_percent: float = Field(ge=0.0, le=100.0)
+    rationale: str
+
+
+class DomainStrategy(BaseModel):
+    """Domain-specific strategy inferred from benchmark signals."""
+
+    requested_domain: str
+    matched_domain: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    benchmark_ctr_percent: float = Field(ge=0.0)
+    benchmark_conversion_rate_percent: float = Field(ge=0.0)
+    recommended_platforms: list[PlatformRecommendation] = Field(default_factory=list)
+
+
 class DashboardData(BaseModel):
     """Aggregated payload for the main dashboard screen."""
 
@@ -74,3 +98,4 @@ class DashboardData(BaseModel):
     budget_allocations: list[BudgetAllocation] = Field(default_factory=list)
     attribution: list[AttributionResult] = Field(default_factory=list)
     fatigue_statuses: list[FatigueStatus] = Field(default_factory=list)
+    domain_strategy: Optional[DomainStrategy] = None

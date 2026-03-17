@@ -3,12 +3,13 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { BarChart3, Target, GitBranch, Activity, FileText, Zap } from "lucide-react"
+import { BarChart3, Target, GitBranch, Activity, FileText, Zap, BrainCircuit } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: BarChart3 },
   { href: "/campaigns", label: "Campaigns", icon: Target },
+  { href: "/intelligence", label: "Intelligence", icon: BrainCircuit },
   { href: "/attribution", label: "Attribution", icon: GitBranch },
   { href: "/fatigue", label: "Fatigue Monitor", icon: Activity },
   { href: "/reports", label: "Reports", icon: FileText },

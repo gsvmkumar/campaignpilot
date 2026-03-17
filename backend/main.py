@@ -24,6 +24,8 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from data_loader import build_artifacts
+from domain_intelligence_engine import run_domain_intelligence
 from engines import attribution as attribution_engine
 from engines import fatigue as fatigue_engine
 from engines import thompson as thompson_engine
@@ -32,10 +34,23 @@ from models import (
     AttributionResult,
     BudgetAllocation,
     DashboardData,
+    DomainStrategy,
     FatigueStatus,
+    PlatformRecommendation,
     VariantMetrics,
 )
-from simulator import generate_cycle, get_history, get_latest
+from replay import (
+    generate_cycle,
+    get_history,
+    get_latest,
+    load_avazu_decay,
+    load_benchmark_priors,
+    load_benchmark_summary,
+    load_criteo_journeys,
+    load_domain_strategies,
+    match_domain_strategy,
+    reset_history,
+)
 
 load_dotenv()
 
@@ -46,16 +61,20 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 REBALANCE_INTERVAL_MINUTES = int(os.getenv("REBALANCE_INTERVAL_MINUTES", "30"))
+FRONTEND_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "FRONTEND_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001",
+    ).split(",")
+    if origin.strip()
+]
 
 app = FastAPI(title="CampaignPilot Backend", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "*",
-        "http://localhost:3000",
-        "http://localhost:3001",
-    ],
-    allow_credentials=True,
+    allow_origins=FRONTEND_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -65,6 +84,7 @@ _last_rebalanced_at: datetime | None = None
 _last_allocations: list[dict[str, Any]] = []
 _last_attribution: list[dict[str, Any]] = []
 _last_fatigue: list[dict[str, Any]] = []
+_last_domain_intelligence: dict[str, Any] = {}
 _rebalance_history: list[dict[str, Any]] = []
 
 
@@ -135,7 +155,7 @@ def _chart_history() -> dict[str, Any]:
 def run_full_cycle() -> dict[str, Any]:
     """Run one complete optimization cycle and persist the latest outputs."""
 
-    global _last_rebalanced_at, _last_allocations, _last_attribution, _last_fatigue
+    global _last_rebalanced_at, _last_allocations, _last_attribution, _last_fatigue, _last_domain_intelligence
 
     metrics = generate_cycle()
     thompson_engine.update(metrics)
@@ -147,6 +167,7 @@ def run_full_cycle() -> dict[str, Any]:
     _last_allocations = [item.model_dump() for item in allocations]
     _last_attribution = [item.model_dump() for item in attribution_results]
     _last_fatigue = [item.model_dump() for item in fatigue_statuses]
+    _last_domain_intelligence = run_domain_intelligence(metrics)
 
     summary = _build_dashboard_summary(metrics, _last_fatigue)
 
@@ -155,6 +176,7 @@ def run_full_cycle() -> dict[str, Any]:
     firebase_client.write_attribution(attribution_results)
     firebase_client.write_fatigue(fatigue_statuses)
     firebase_client.write_dashboard_summary(summary)
+    firebase_client.write_domain_intelligence(_last_domain_intelligence)
 
     previous_allocations = _rebalance_history[-1]["allocations"] if _rebalance_history else {}
     current_allocations = {
@@ -180,6 +202,7 @@ def run_full_cycle() -> dict[str, Any]:
         "attribution": _last_attribution,
         "fatigue": _last_fatigue,
         "summary": summary,
+        "domain_intelligence": _last_domain_intelligence,
     }
 
 
@@ -194,6 +217,9 @@ def _ensure_initialized() -> None:
 def startup_event() -> None:
     """Run an initial cycle and start the background scheduler."""
 
+    build_artifacts()
+    reset_history()
+    thompson_engine.initialize_from_priors()
     _ensure_initialized()
     if not _scheduler.running:
         _scheduler.add_job(run_full_cycle, "interval", minutes=REBALANCE_INTERVAL_MINUTES, id="full_cycle", replace_existing=True)
@@ -217,12 +243,35 @@ def health() -> dict[str, Any]:
     return {
         "status": "ok",
         "timestamp": _iso_now(),
-        "engines": ["thompson", "attribution", "fatigue"],
+        "engines": ["thompson", "attribution", "fatigue", "domain_intelligence"],
+        "data_source": "dataset_replay",
+        "artifacts_ready": True,
     }
 
 
+def _domain_strategy_response(domain: str | None) -> DomainStrategy | None:
+    if not domain:
+        return None
+
+    payload = match_domain_strategy(domain)
+    if not payload:
+        return None
+
+    return DomainStrategy(
+        requested_domain=domain,
+        matched_domain=str(payload.get("matched_domain", domain)),
+        confidence=float(payload.get("confidence", 0.0)),
+        benchmark_ctr_percent=float(payload.get("benchmark_ctr_percent", 0.0)),
+        benchmark_conversion_rate_percent=float(payload.get("benchmark_conversion_rate_percent", 0.0)),
+        recommended_platforms=[
+            PlatformRecommendation.model_validate(item)
+            for item in payload.get("recommended_platforms", [])
+        ],
+    )
+
+
 @app.get("/api/dashboard", response_model=DashboardData)
-def get_dashboard() -> DashboardData:
+def get_dashboard(domain: str | None = Query(default=None)) -> DashboardData:
     """Return the main dashboard payload for the frontend."""
 
     _ensure_initialized()
@@ -239,6 +288,7 @@ def get_dashboard() -> DashboardData:
         budget_allocations=[BudgetAllocation.model_validate(item) for item in _last_allocations],
         attribution=[AttributionResult.model_validate(item) for item in _last_attribution],
         fatigue_statuses=[FatigueStatus.model_validate(item) for item in _last_fatigue],
+        domain_strategy=_domain_strategy_response(domain),
     )
 
 
@@ -306,6 +356,85 @@ def get_analytics() -> dict[str, Any]:
 
     _ensure_initialized()
     return _chart_history()
+
+
+@app.get("/api/data-summary")
+def get_data_summary() -> dict[str, Any]:
+    """Return a compact summary of the dataset-backed artifacts used by the backend."""
+
+    priors = load_benchmark_priors()
+    benchmark_summary = load_benchmark_summary()
+    journeys = load_criteo_journeys()
+    fatigue_payload = load_avazu_decay()
+
+    return {
+        "data_source": "dataset_replay",
+        "benchmark_medians": {
+            "ctr_percent": benchmark_summary.get("median_ctr_percent"),
+            "conversion_rate_percent": benchmark_summary.get("median_conversion_rate_percent"),
+        },
+        "top_benchmark_categories": benchmark_summary.get("top_categories", []),
+        "variant_count": len(priors),
+        "variants": list(priors.values()),
+        "journey_count": len(journeys),
+        "fatigue_segments": fatigue_payload.get("segments", []),
+    }
+
+
+@app.get("/api/domains")
+def get_domains() -> dict[str, Any]:
+    """Return known benchmark domains that users can start from."""
+
+    strategies = load_domain_strategies()
+    if strategies:
+        domains = sorted(
+            {
+                str(payload.get("domain")).strip()
+                for payload in strategies.values()
+                if payload.get("domain")
+            }
+        )
+        return {"domains": domains}
+
+    benchmark_summary = load_benchmark_summary()
+    return {
+        "domains": [
+            item.get("business_category")
+            for item in benchmark_summary.get("top_categories", [])
+            if item.get("business_category")
+        ]
+    }
+
+
+@app.get("/api/domain-strategy")
+def get_domain_strategy(domain: str = Query(...)) -> dict[str, Any]:
+    """Return a domain-specific platform recommendation mix."""
+
+    strategy = _domain_strategy_response(domain)
+    if strategy is None:
+        return {
+            "requested_domain": domain,
+            "matched_domain": domain,
+            "confidence": 0.0,
+            "recommended_platforms": [],
+        }
+    return strategy.model_dump()
+
+
+@app.get("/api/intelligence")
+def get_intelligence(domain: str | None = Query(default=None)) -> dict[str, Any]:
+    """Return the latest Domain Intelligence Engine payload."""
+
+    _ensure_initialized()
+    latest_metrics = get_latest()
+    if domain:
+        return run_domain_intelligence(latest_metrics, manual_industry=domain)
+    if _last_domain_intelligence:
+        return _last_domain_intelligence
+    cached = firebase_client.read_domain_intelligence()
+    if cached:
+        return cached
+    return run_domain_intelligence(latest_metrics)
 
 
 if __name__ == "__main__":

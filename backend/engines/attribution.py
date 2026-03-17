@@ -11,6 +11,7 @@ import shap
 from sklearn.linear_model import LogisticRegression
 
 from models import AttributionResult, VariantMetrics
+from replay import load_criteo_journeys
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,24 @@ def _weighted_channels(metrics: list[VariantMetrics]) -> tuple[list[str], np.nda
 
 
 def generate_journeys(metrics: list[VariantMetrics]) -> list[list[str]]:
-    """Generate synthetic converting customer journeys based on current performance."""
+    """Generate or load customer journeys aligned to the current variant channels."""
+
+    available_channels = {metric.channel for metric in metrics}
+    real_journeys = [
+        [str(channel) for channel in item["path"]] + ["conversion"]
+        for item in load_criteo_journeys()
+        if isinstance(item, dict)
+        and item.get("conversion", 0)
+        and isinstance(item.get("path"), list)
+        and any(str(channel) in available_channels for channel in item["path"])
+    ]
+    if real_journeys:
+        logger.info("Loaded %s real customer journeys from processed clickstream data", len(real_journeys))
+        return [
+            [channel for channel in journey[:-1] if channel in available_channels] + ["conversion"]
+            for journey in real_journeys
+            if [channel for channel in journey[:-1] if channel in available_channels]
+        ]
 
     channels, weights = _weighted_channels(metrics)
     journeys: list[list[str]] = []

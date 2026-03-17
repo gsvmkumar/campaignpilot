@@ -21,6 +21,7 @@ _initialized = False
 _latest_metrics_cache: list[dict[str, Any]] = []
 _budget_state_cache: dict[str, float] = {}
 _dashboard_summary_cache: dict[str, Any] = {}
+_domain_intelligence_cache: dict[str, Any] = {}
 
 
 def _initialize() -> None:
@@ -154,6 +155,24 @@ def write_dashboard_summary(data: dict[str, Any]) -> None:
         logger.exception("Failed to write dashboard summary to Firebase: %s", exc)
 
 
+def write_domain_intelligence(payload: dict[str, Any]) -> None:
+    """Write the latest domain intelligence payload to Firestore and cache it."""
+
+    global _domain_intelligence_cache
+    _initialize()
+    _domain_intelligence_cache = dict(payload)
+
+    if _firestore_client is None:
+        logger.info("Skipping Firebase domain intelligence write; local-only mode active")
+        return
+
+    try:
+        _firestore_client.collection("domain_intelligence").document("latest").set(payload)
+        _firestore_client.collection("domain_intelligence_history").add(payload)
+    except Exception as exc:
+        logger.exception("Failed to write domain intelligence to Firebase: %s", exc)
+
+
 def read_budget_state() -> dict[str, float]:
     """Read the latest budget state from Firebase or local cache."""
 
@@ -173,3 +192,22 @@ def read_latest_metrics() -> list[dict[str, Any]]:
     """Read latest metric documents from local cache."""
 
     return list(_latest_metrics_cache)
+
+
+def read_domain_intelligence() -> dict[str, Any]:
+    """Return the latest cached intelligence payload."""
+
+    _initialize()
+    if _firestore_client is None:
+        return dict(_domain_intelligence_cache)
+
+    try:
+        document = _firestore_client.collection("domain_intelligence").document("latest").get()
+        if document.exists:
+            payload = document.to_dict() or {}
+            _domain_intelligence_cache.clear()
+            _domain_intelligence_cache.update(payload)
+            return payload
+    except Exception as exc:
+        logger.exception("Failed to read domain intelligence from Firebase: %s", exc)
+    return dict(_domain_intelligence_cache)

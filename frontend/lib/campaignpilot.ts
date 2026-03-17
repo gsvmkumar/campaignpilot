@@ -6,6 +6,7 @@ export interface BackendVariantMetrics {
   variant_id: string
   name: string
   channel: string
+  benchmark_category?: string | null
   impressions: number
   clicks: number
   ctr: number
@@ -52,6 +53,18 @@ export interface DashboardResponse {
     budget_change_inr: number
   }>
   fatigue_statuses: BackendFatigueStatus[]
+  domain_strategy?: {
+    requested_domain: string
+    matched_domain: string
+    confidence: number
+    benchmark_ctr_percent: number
+    benchmark_conversion_rate_percent: number
+    recommended_platforms: Array<{
+      platform: string
+      recommended_budget_percent: number
+      rationale: string
+    }>
+  } | null
 }
 
 export interface AnalyticsResponse {
@@ -65,11 +78,144 @@ export interface AnalyticsResponse {
   }>
 }
 
+export interface DomainsResponse {
+  domains: string[]
+}
+
+export interface AttributionResponse {
+  results: Array<{
+    channel: string
+    last_click_credit: number
+    shapley_credit: number
+    difference: number
+    recommendation: string
+    budget_change_inr: number
+  }>
+  biggest_discrepancy: string
+  total_misallocated_inr: number
+}
+
+export interface FatigueResponse {
+  results: BackendFatigueStatus[]
+  fatigued_count: number
+  watch_count: number
+  healthy_count: number
+}
+
+export interface DataSummaryResponse {
+  data_source: string
+  benchmark_medians: {
+    ctr_percent: number | null
+    conversion_rate_percent: number | null
+  }
+  top_benchmark_categories: Array<{
+    business_category: string
+    ctr_percent: number
+    conversion_rate_percent: number
+    score: number
+  }>
+  variant_count: number
+  variants: Array<Record<string, unknown>>
+  journey_count: number
+  fatigue_segments: Array<Record<string, unknown>>
+}
+
+export interface IntelligenceSignal {
+  type: string
+  metric: string
+  severity: number
+  color: string
+  title: string
+  message: string
+  action: string
+  actual: number
+  benchmark: number
+  delta: number
+  timestamp: string
+  potential_conversions?: number
+}
+
+export interface ScoredVariant {
+  variant_id?: string | null
+  variant_name: string
+  channel: string
+  industry: string
+  benchmark_category?: string | null
+  performance_index: number
+  grade: string
+  grade_label: string
+  actual_ctr: number
+  actual_cvr: number
+  actual_cpc: number
+  actual_cpl: number
+  spend: number
+  conversions: number
+  clicks: number
+  impressions: number
+  bench_ctr: number
+  bench_cvr: number
+  bench_cpc: number
+  bench_cpl: number
+  ctr_delta: number
+  cvr_delta: number
+  cpc_delta: number
+  cpl_delta: number
+  ctr_score: number
+  cvr_score: number
+  cpc_score: number
+  cpl_score: number
+}
+
+export interface IntelligenceRecommendation {
+  priority: number
+  category: string
+  impact: string
+  color: string
+  title: string
+  body: string
+  metric: string
+  value: string
+  variant: string
+  realloc_detail?: Record<string, number>
+}
+
+export interface IntelligenceResponse {
+  generated_at: string
+  variant_count: number
+  selected_industry?: string | null
+  executive_summary: {
+    average_performance_index: number
+    outperforming_count: number
+    underperforming_count: number
+    grade_distribution: Record<string, number>
+    summary_text: string
+    top_variant?: {
+      variant_name: string
+      channel: string
+      performance_index: number
+      grade: string
+    } | null
+  }
+  scored_variants: ScoredVariant[]
+  signals: Record<string, IntelligenceSignal[]>
+  top_signals: Array<
+    IntelligenceSignal & {
+      variant_id?: string | null
+      variant_name: string
+      channel: string
+      industry: string
+    }
+  >
+  recommendations: IntelligenceRecommendation[]
+}
+
 export interface DashboardVariant {
   id: string
   variantId: string
   name: string
   platform: string
+  benchmarkCategory?: string
+  iconPath: string
   budget: number
   ctr: number
   conversions: number
@@ -103,7 +249,7 @@ const COLOR_MAP: Record<DashboardVariant["status"], string> = {
 }
 
 function getApiBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8080"
+  return "/backend-api"
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
@@ -112,18 +258,49 @@ async function fetchJson<T>(path: string): Promise<T> {
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch ${path}: ${response.status}`)
+    const responseText = await response.text()
+    throw new Error(`Failed to fetch ${path}: ${response.status}${responseText ? ` - ${responseText}` : ""}`)
   }
 
   return response.json() as Promise<T>
 }
 
-export async function fetchDashboard(): Promise<DashboardResponse> {
-  return fetchJson<DashboardResponse>("/api/dashboard")
+export async function fetchDashboard(domain?: string): Promise<DashboardResponse> {
+  const params = new URLSearchParams()
+  if (domain) {
+    params.set("domain", domain)
+  }
+  const suffix = params.size > 0 ? `?${params.toString()}` : ""
+  return fetchJson<DashboardResponse>(`/api/dashboard${suffix}`)
 }
 
 export async function fetchAnalytics(): Promise<AnalyticsResponse> {
   return fetchJson<AnalyticsResponse>("/api/analytics")
+}
+
+export async function fetchDomains(): Promise<DomainsResponse> {
+  return fetchJson<DomainsResponse>("/api/domains")
+}
+
+export async function fetchAttribution(): Promise<AttributionResponse> {
+  return fetchJson<AttributionResponse>("/api/attribution")
+}
+
+export async function fetchFatigue(): Promise<FatigueResponse> {
+  return fetchJson<FatigueResponse>("/api/fatigue")
+}
+
+export async function fetchDataSummary(): Promise<DataSummaryResponse> {
+  return fetchJson<DataSummaryResponse>("/api/data-summary")
+}
+
+export async function fetchIntelligence(domain?: string): Promise<IntelligenceResponse> {
+  const params = new URLSearchParams()
+  if (domain) {
+    params.set("domain", domain)
+  }
+  const suffix = params.size > 0 ? `?${params.toString()}` : ""
+  return fetchJson<IntelligenceResponse>(`/api/intelligence${suffix}`)
 }
 
 function variantLetter(variantId: string): string {
@@ -167,6 +344,8 @@ export function adaptVariants(data: DashboardResponse): DashboardVariant[] {
       variantId: variant.variant_id,
       name: variant.name,
       platform: variant.channel,
+      benchmarkCategory: variant.benchmark_category ?? undefined,
+      iconPath: getVariantIconPath(variant.variant_id),
       budget: Number((budgetById.get(variant.variant_id) ?? 0).toFixed(1)),
       ctr: Number(variant.ctr.toFixed(2)),
       conversions: variant.conversions,
@@ -176,6 +355,40 @@ export function adaptVariants(data: DashboardResponse): DashboardVariant[] {
       color: COLOR_MAP[status],
     }
   })
+}
+
+export function getVariantIconPath(variantId: string): string {
+  return `/apps/${variantId}.svg`
+}
+
+export function getPlatformIcon(platform: string): string {
+  const normalized = platform.trim().toLowerCase()
+
+  if (normalized.includes("instagram")) {
+    return "IG"
+  }
+  if (normalized.includes("facebook")) {
+    return "FB"
+  }
+  if (normalized.includes("youtube")) {
+    return "YT"
+  }
+  if (normalized.includes("search")) {
+    return "GS"
+  }
+  if (normalized.includes("display")) {
+    return "GD"
+  }
+  if (normalized.includes("email")) {
+    return "EM"
+  }
+
+  return platform
+    .split(" ")
+    .map((word) => word[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase()
 }
 
 export function buildMetricCards(data: DashboardResponse): DashboardMetricCard[] {
@@ -271,6 +484,21 @@ export function buildCtrTrendData(
     variants.forEach((variant) => {
       const value = row[variant.variantId]
       mapped[variant.id] = typeof value === "number" ? value : variant.ctr
+    })
+    return mapped
+  })
+}
+
+export function buildBudgetHistory(
+  variants: DashboardVariant[],
+  analytics: AnalyticsResponse,
+): Array<Record<string, string | number>> {
+  return analytics.rebalance_history.map((row, index) => {
+    const mapped: Record<string, string | number> = {
+      cycle: `Cycle ${index + 1}`,
+    }
+    variants.forEach((variant) => {
+      mapped[variant.id] = Number((row.allocations[variant.variantId] ?? variant.budget).toFixed(2))
     })
     return mapped
   })
