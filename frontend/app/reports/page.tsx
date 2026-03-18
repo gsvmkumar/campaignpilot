@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   CartesianGrid,
   ResponsiveContainer,
@@ -15,14 +16,21 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ExportButtons } from "@/components/reports/export-buttons"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { adaptVariants } from "@/lib/campaignpilot"
+import { getDefaultDomain, loadSelectedDomain } from "@/lib/domain-selection"
 import { useLiveInsights } from "@/hooks/use-live-insights"
 
 export default function ReportsPage() {
-  const { dashboard, analytics, dataSummary, error, lastUpdatedAt } = useLiveInsights("Furniture", 20_000)
+  const [domain, setDomain] = useState(getDefaultDomain)
+  const { dashboard, analytics, dataSummary, error, lastUpdatedAt } = useLiveInsights(domain, 20_000)
+
+  useEffect(() => {
+    setDomain(loadSelectedDomain())
+  }, [])
 
   const variants = dashboard ? adaptVariants(dashboard) : []
   const efficiencyData = variants.map((variant) => ({
-    name: variant.name,
+    name: variant.platform,
+    creative: variant.name,
     spend: variant.spend,
     conversions: variant.conversions,
     ctr: variant.ctr,
@@ -39,8 +47,13 @@ export default function ReportsPage() {
               Live campaign reporting with downloadable summaries and dataset-backed evidence.
             </p>
           </div>
-          <div className="rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs text-success">
-            {lastUpdatedAt ? `Snapshot ${new Date(lastUpdatedAt).toLocaleTimeString()}` : "Preparing report..."}
+          <div className="flex items-center gap-3">
+            <div className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
+              Domain: {domain}
+            </div>
+            <div className="rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs text-success">
+              {lastUpdatedAt ? `Snapshot ${new Date(lastUpdatedAt).toLocaleTimeString()}` : "Preparing report..."}
+            </div>
           </div>
         </div>
 
@@ -100,8 +113,8 @@ export default function ReportsPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border text-left text-sm text-muted-foreground">
-                        <th className="px-4 py-3">Application</th>
-                        <th className="px-4 py-3">Domain</th>
+                        <th className="px-4 py-3">Platform</th>
+                        <th className="px-4 py-3">Creative</th>
                         <th className="px-4 py-3">CTR</th>
                         <th className="px-4 py-3">Conversions</th>
                         <th className="px-4 py-3">Budget</th>
@@ -111,8 +124,8 @@ export default function ReportsPage() {
                     <tbody>
                       {variants.map((variant) => (
                         <tr key={variant.variantId} className="border-b border-border/50">
-                          <td className="px-4 py-3 font-medium">{variant.name}</td>
-                          <td className="px-4 py-3 text-sm text-muted-foreground">{variant.platform}</td>
+                          <td className="px-4 py-3 font-medium">{variant.platform}</td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">{variant.name}</td>
                           <td className="px-4 py-3">{variant.ctr.toFixed(2)}%</td>
                           <td className="px-4 py-3">{variant.conversions.toLocaleString()}</td>
                           <td className="px-4 py-3">{variant.budget.toFixed(1)}%</td>
@@ -157,7 +170,7 @@ export default function ReportsPage() {
                   <div key={entry.timestamp} className="rounded-xl border border-border bg-secondary/20 p-4">
                     <p className="font-medium">Cycle {index + 1}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {new Date(entry.timestamp).toLocaleString()} · {Object.keys(entry.changes).length} allocation changes tracked
+                      {new Date(entry.timestamp).toLocaleString()} - {Object.keys(entry.changes).length} allocation changes tracked
                     </p>
                   </div>
                 ))}

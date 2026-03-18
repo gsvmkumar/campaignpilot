@@ -23,14 +23,14 @@ VARIANT_IDS = [f"variant_{suffix}" for suffix in ("a", "b", "c", "d", "e", "f")]
 MAX_CYCLES = 10
 CHUNKSIZE = 200_000
 UID_SAMPLE_MODULUS = 97
-ARTIFACT_SCHEMA_VERSION = 4
+ARTIFACT_SCHEMA_VERSION = 5
 PLATFORMS = [
     "Google Search",
     "Instagram",
     "YouTube",
     "Facebook",
+    "LinkedIn",
     "Email",
-    "Google Display",
 ]
 
 
@@ -144,13 +144,15 @@ def _domain_keyword_boosts(domain: str) -> dict[str, float]:
         boosts["YouTube"] += 0.25
         boosts["Facebook"] += 0.2
     if any(keyword in lowered for keyword in ("software", "business", "legal", "finance", "education", "industrial")):
-        boosts["Google Search"] += 0.4
-        boosts["Email"] += 0.25
-        boosts["Facebook"] += 0.1
+        boosts["Google Search"] += 0.25
+        boosts["LinkedIn"] += 0.45
+        boosts["Email"] += 0.2
+        boosts["Facebook"] += 0.05
     if any(keyword in lowered for keyword in ("health", "fitness", "dentists", "physicians")):
         boosts["Google Search"] += 0.25
         boosts["Facebook"] += 0.2
         boosts["Email"] += 0.15
+        boosts["YouTube"] += 0.1
 
     return boosts
 
@@ -165,12 +167,10 @@ def _domain_rationale(domain: str, platform: str, ctr_percent: float, conversion
         return f"Video storytelling works well when {domain} benefits from demos, comparisons, and product education."
     if platform == "Facebook":
         return f"Facebook supports broad retargeting and social proof for {domain} campaigns."
+    if platform == "LinkedIn":
+        return f"LinkedIn is effective for trust-heavy and professional audiences in {domain}, especially for higher-intent leads."
     if platform == "Email":
         return f"Email is valuable for nurturing returning users in {domain} when conversion quality matters."
-    if platform == "Google Display":
-        if "software" in lowered or "business" in lowered:
-            return f"Display keeps {domain} visible during longer consideration cycles."
-        return f"Display extends reach and remarketing coverage for {domain} audiences."
     return f"{platform} is a strong fit for {domain} based on benchmark performance patterns."
 
 
@@ -190,8 +190,8 @@ def _recommended_platform_mix(
         "Instagram": (0.95 + (0.5 * ctr_signal) + (0.08 * cvr_signal)) * keyword_boosts["Instagram"],
         "YouTube": (0.9 + (0.42 * ctr_signal) + (0.1 * cvr_signal)) * keyword_boosts["YouTube"],
         "Facebook": (0.92 + (0.28 * ctr_signal) + (0.24 * cvr_signal)) * keyword_boosts["Facebook"],
+        "LinkedIn": (0.84 + (0.18 * ctr_signal) + (0.4 * cvr_signal)) * keyword_boosts["LinkedIn"],
         "Email": (0.82 + (0.45 * cvr_signal) + (0.05 * ctr_signal)) * keyword_boosts["Email"],
-        "Google Display": (0.74 + (0.3 * ctr_signal) + (0.06 * cvr_signal)) * keyword_boosts["Google Display"],
     }
     total_score = sum(raw_scores.values()) or 1.0
     return [

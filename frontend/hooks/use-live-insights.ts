@@ -44,7 +44,7 @@ export function useLiveInsights(domain?: string, intervalMs = 30_000): LiveInsig
         const [dashboard, analytics, attribution, fatigue, dataSummary] = await Promise.all([
           fetchDashboard(domain),
           fetchAnalytics(),
-          fetchAttribution(),
+          fetchAttribution(domain),
           fetchFatigue(),
           fetchDataSummary(),
         ])

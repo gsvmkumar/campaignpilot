@@ -188,7 +188,7 @@ export default function IntelligencePage() {
                   </div>
                   <p className="mt-3 text-xl font-bold">{summary.top_variant?.channel ?? "Unknown"}</p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    PI {summary.top_variant?.performance_index ?? 0} · Grade {summary.top_variant?.grade ?? "-"}
+                    PI {summary.top_variant?.performance_index ?? 0} - Grade {summary.top_variant?.grade ?? "-"}
                   </p>
                 </CardContent>
               </Card>
@@ -301,7 +301,7 @@ export default function IntelligencePage() {
                           <div>
                             <p className="font-medium">{recommendation.title}</p>
                             <p className="mt-1 text-sm text-muted-foreground">
-                              {recommendation.impact} impact · Priority {recommendation.priority}
+                              {recommendation.impact} impact - Priority {recommendation.priority}
                             </p>
                           </div>
                           <div className="rounded-full bg-background px-2 py-1 text-xs text-muted-foreground">

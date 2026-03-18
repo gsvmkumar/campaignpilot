@@ -132,3 +132,26 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .recharts-default-tooltip {
+    background-color: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 12px !important;
+    color: var(--foreground) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  .recharts-tooltip-label {
+    color: var(--foreground) !important;
+    font-weight: 600;
+  }
+
+  .recharts-tooltip-item {
+    color: var(--foreground) !important;
+  }
+
+  .recharts-legend-item-text {
+    color: var(--foreground) !important;
+  }
+}

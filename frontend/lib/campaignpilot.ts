@@ -282,8 +282,13 @@ export async function fetchDomains(): Promise<DomainsResponse> {
   return fetchJson<DomainsResponse>("/api/domains")
 }
 
-export async function fetchAttribution(): Promise<AttributionResponse> {
-  return fetchJson<AttributionResponse>("/api/attribution")
+export async function fetchAttribution(domain?: string): Promise<AttributionResponse> {
+  const params = new URLSearchParams()
+  if (domain) {
+    params.set("domain", domain)
+  }
+  const suffix = params.size > 0 ? `?${params.toString()}` : ""
+  return fetchJson<AttributionResponse>(`/api/attribution${suffix}`)
 }
 
 export async function fetchFatigue(): Promise<FatigueResponse> {
@@ -378,6 +383,9 @@ export function getPlatformIcon(platform: string): string {
   }
   if (normalized.includes("display")) {
     return "GD"
+  }
+  if (normalized.includes("linkedin")) {
+    return "LI"
   }
   if (normalized.includes("email")) {
     return "EM"

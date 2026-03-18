@@ -11,13 +11,47 @@ import shap
 from sklearn.linear_model import LogisticRegression
 
 from models import AttributionResult, VariantMetrics
-from replay import load_criteo_journeys
+from replay import load_criteo_journeys, match_domain_strategy
 
 logger = logging.getLogger(__name__)
 
 TOTAL_BUDGET: Final[float] = 1_000_000.0
 JOURNEY_COUNT: Final[int] = 200
 _rng = np.random.default_rng()
+FALLBACK_CHANNELS: Final[list[str]] = [
+    "Instagram",
+    "Facebook",
+    "YouTube",
+    "Google Search",
+    "LinkedIn",
+    "Email",
+]
+
+
+def _align_metric_channels(metrics: list[VariantMetrics], domain: str | None = None) -> list[VariantMetrics]:
+    """Ensure attribution runs on a diversified, unique channel set."""
+
+    channels = [metric.channel for metric in metrics]
+    if len(set(channels)) == len(channels):
+        return metrics
+
+    inferred_domain = domain
+    if not inferred_domain:
+        inferred_domain = next((metric.benchmark_category for metric in metrics if metric.benchmark_category), None)
+
+    strategy = match_domain_strategy(inferred_domain) if inferred_domain else None
+    recommended = strategy.get("recommended_platforms", []) if strategy else []
+    mapped_channels = [
+        str(item.get("platform")).strip()
+        for item in recommended
+        if isinstance(item, dict) and item.get("platform")
+    ]
+    unique_channels = list(dict.fromkeys(mapped_channels)) or list(FALLBACK_CHANNELS)
+
+    aligned: list[VariantMetrics] = []
+    for index, metric in enumerate(metrics):
+        aligned.append(metric.model_copy(update={"channel": unique_channels[index % len(unique_channels)]}))
+    return aligned
 
 
 def _normalize_percentages(values: dict[str, float]) -> dict[str, float]:
@@ -152,18 +186,19 @@ def _compute_last_click(journeys: list[list[str]], channels: list[str]) -> dict[
     return _normalize_percentages(last_click_counts)
 
 
-def compute(metrics: list[VariantMetrics]) -> list[AttributionResult]:
+def compute(metrics: list[VariantMetrics], domain: str | None = None) -> list[AttributionResult]:
     """Compute channel attribution recommendations from the latest campaign metrics."""
 
-    channels = [metric.channel for metric in metrics]
-    journeys = generate_journeys(metrics)
+    aligned_metrics = _align_metric_channels(metrics, domain)
+    channels = [metric.channel for metric in aligned_metrics]
+    journeys = generate_journeys(aligned_metrics)
     last_click_credit = _compute_last_click(journeys, channels)
 
     try:
         shapley_credit = _compute_shapley_credit(journeys, channels)
     except Exception as exc:
         logger.exception("SHAP attribution failed; using fallback: %s", exc)
-        shapley_credit = _fallback_shapley_credit(metrics)
+        shapley_credit = _fallback_shapley_credit(aligned_metrics)
 
     results: list[AttributionResult] = []
     for channel in channels:

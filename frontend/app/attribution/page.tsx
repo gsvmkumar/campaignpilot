@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Bar,
   BarChart,
@@ -17,12 +17,18 @@ import { ArrowRightLeft, Compass, GitBranch, Radar } from "lucide-react"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { getDefaultDomain, loadSelectedDomain } from "@/lib/domain-selection"
 import { useLiveInsights } from "@/hooks/use-live-insights"
 
 const palette = ["#22c55e", "#38bdf8", "#f59e0b", "#ef4444", "#a855f7", "#f97316"]
 
 export default function AttributionPage() {
-  const { attribution, dataSummary, error, lastUpdatedAt } = useLiveInsights("Furniture", 20_000)
+  const [domain, setDomain] = useState(getDefaultDomain)
+  const { attribution, dataSummary, error, lastUpdatedAt } = useLiveInsights(domain, 20_000)
+
+  useEffect(() => {
+    setDomain(loadSelectedDomain())
+  }, [])
 
   const comparisonData = attribution?.results ?? []
   const journeyMix = useMemo(
@@ -45,8 +51,13 @@ export default function AttributionPage() {
               Real-time channel credit using processed customer journeys from your clickstream dataset.
             </p>
           </div>
-          <div className="rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs text-success">
-            {lastUpdatedAt ? `Live tracking ${new Date(lastUpdatedAt).toLocaleTimeString()}` : "Connecting..."}
+          <div className="flex items-center gap-3">
+            <div className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
+              Domain: {domain}
+            </div>
+            <div className="rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs text-success">
+              {lastUpdatedAt ? `Live tracking ${new Date(lastUpdatedAt).toLocaleTimeString()}` : "Connecting..."}
+            </div>
           </div>
         </div>
 

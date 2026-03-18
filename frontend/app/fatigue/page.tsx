@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   CartesianGrid,
   Legend,
@@ -17,25 +17,33 @@ import { AlertTriangle, HeartPulse, ShieldAlert, Sparkles } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { adaptVariants, buildCtrTrendData } from "@/lib/campaignpilot"
+import { getDefaultDomain, loadSelectedDomain } from "@/lib/domain-selection"
 import { useLiveInsights } from "@/hooks/use-live-insights"
 
 const palette = ["#22c55e", "#38bdf8", "#f59e0b", "#ef4444", "#a855f7", "#f97316"]
 
 export default function FatigueMonitorPage() {
-  const { dashboard, analytics, fatigue, error, lastUpdatedAt } = useLiveInsights("Furniture", 20_000)
+  const [domain, setDomain] = useState(getDefaultDomain)
+  const { dashboard, analytics, fatigue, error, lastUpdatedAt } = useLiveInsights(domain, 20_000)
+
+  useEffect(() => {
+    setDomain(loadSelectedDomain())
+  }, [])
 
   const variants = dashboard ? adaptVariants(dashboard) : []
   const ranked = [...variants].sort((left, right) => right.fatigueScore - left.fatigueScore)
   const trendData = dashboard && analytics ? buildCtrTrendData(adaptVariants(dashboard), analytics) : []
+  const variantById = useMemo(() => new Map(variants.map((variant) => [variant.variantId, variant])), [variants])
 
   const fatigueInsights = useMemo(
     () =>
       (fatigue?.results ?? []).map((item) => ({
         ...item,
+        displayChannel: variantById.get(item.variant_id)?.platform ?? item.channel,
         ctrFloor: Math.min(...item.ctr_history, 0),
         ctrPeak: Math.max(...item.ctr_history, 0),
       })),
-    [fatigue],
+    [fatigue, variantById],
   )
 
   return (
@@ -48,8 +56,13 @@ export default function FatigueMonitorPage() {
               Real-time creative health scoring with live CTR decay tracking and refresh prioritization.
             </p>
           </div>
-          <div className="rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs text-success">
-            {lastUpdatedAt ? `Live tracking ${new Date(lastUpdatedAt).toLocaleTimeString()}` : "Connecting..."}
+          <div className="flex items-center gap-3">
+            <div className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs text-primary">
+              Domain: {domain}
+            </div>
+            <div className="rounded-full border border-success/20 bg-success/10 px-3 py-1 text-xs text-success">
+              {lastUpdatedAt ? `Live tracking ${new Date(lastUpdatedAt).toLocaleTimeString()}` : "Connecting..."}
+            </div>
           </div>
         </div>
 
@@ -188,7 +201,7 @@ export default function FatigueMonitorPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-medium">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.channel}</p>
+                      <p className="text-xs text-muted-foreground">{item.displayChannel}</p>
                     </div>
                     <div className={`rounded-full px-3 py-1 text-xs ${
                       item.status === "FATIGUED"

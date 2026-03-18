@@ -316,14 +316,19 @@ def get_budget() -> dict[str, Any]:
 
 
 @app.get("/api/attribution")
-def get_attribution() -> dict[str, Any]:
+def get_attribution(domain: str | None = Query(default=None)) -> dict[str, Any]:
     """Return attribution breakdown plus summary discrepancy metrics."""
 
     _ensure_initialized()
-    biggest = max(_last_attribution, key=lambda item: abs(item["difference"]))
-    total_misallocated = round(sum(item["budget_change_inr"] for item in _last_attribution), 2)
+    if domain:
+        attribution_results = [item.model_dump() for item in attribution_engine.compute(get_latest(), domain)]
+    else:
+        attribution_results = _last_attribution
+
+    biggest = max(attribution_results, key=lambda item: abs(item["difference"]))
+    total_misallocated = round(sum(item["budget_change_inr"] for item in attribution_results), 2)
     return {
-        "results": _last_attribution,
+        "results": attribution_results,
         "biggest_discrepancy": biggest["channel"],
         "total_misallocated_inr": total_misallocated,
     }
